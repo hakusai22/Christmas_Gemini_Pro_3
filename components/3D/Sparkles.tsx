@@ -2,9 +2,14 @@ import React, { useRef } from 'react';
 import { useFrame, ThreeElements } from '@react-three/fiber';
 import * as THREE from 'three';
 
+// Fix for missing R3F JSX types in this environment
 declare global {
   namespace JSX {
-    interface IntrinsicElements extends ThreeElements {}
+    interface IntrinsicElements {
+      instancedMesh: any;
+      dodecahedronGeometry: any;
+      meshStandardMaterial: any;
+    }
   }
 }
 

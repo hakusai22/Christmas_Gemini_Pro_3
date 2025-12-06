@@ -7,9 +7,17 @@ import { GrandTree } from './3D/Tree';
 import { FloatingSparkles } from './3D/Sparkles';
 import { TreeMode } from '../types';
 
+// Fix for missing R3F JSX types in this environment
 declare global {
   namespace JSX {
-    interface IntrinsicElements extends ThreeElements {}
+    interface IntrinsicElements {
+      color: any;
+      fog: any;
+      ambientLight: any;
+      spotLight: any;
+      pointLight: any;
+      group: any;
+    }
   }
 }
 

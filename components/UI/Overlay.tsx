@@ -1,6 +1,6 @@
 import React from 'react';
 import { InteractionState, TreeMode } from '../../types';
-import { Loader2, X, Star, Upload, Trash2 } from 'lucide-react';
+import { Loader2, X, Star, Upload, Trash2, Volume2, VolumeX, Music } from 'lucide-react';
 
 interface OverlayProps {
   interactionState: InteractionState;
@@ -12,6 +12,9 @@ interface OverlayProps {
   userImages: string[];
   onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveImage: (index: number) => void;
+  isMusicPlaying: boolean;
+  onToggleMusic: () => void;
+  onMusicUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export const Overlay: React.FC<OverlayProps> = ({ 
@@ -23,10 +26,43 @@ export const Overlay: React.FC<OverlayProps> = ({
   onExplode,
   userImages,
   onImageUpload,
-  onRemoveImage
+  onRemoveImage,
+  isMusicPlaying,
+  onToggleMusic,
+  onMusicUpload
 }) => {
+  // Logic to show only the last few images to avoid clutter
+  const MAX_THUMBNAILS = 3;
+  const displayImages = userImages.slice(-MAX_THUMBNAILS);
+  const hiddenCount = Math.max(0, userImages.length - MAX_THUMBNAILS);
+
   return (
     <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-6 md:p-12">
+      
+      {/* Top Left: Music Control */}
+      <div className="fixed top-6 left-6 pointer-events-auto z-50 flex gap-3">
+        <button 
+          onClick={onToggleMusic}
+          className="p-3 bg-emerald-950/40 backdrop-blur-md border border-gold-500/30 rounded-full text-gold-400 hover:text-white hover:bg-gold-900/40 transition-all shadow-[0_0_20px_rgba(255,215,0,0.1)]"
+          title={isMusicPlaying ? "Mute Music" : "Play Music"}
+        >
+          {isMusicPlaying ? <Volume2 size={24} /> : <VolumeX size={24} />}
+        </button>
+
+        <label 
+          className="p-3 bg-emerald-950/40 backdrop-blur-md border border-gold-500/30 rounded-full text-gold-400 hover:text-white hover:bg-gold-900/40 transition-all shadow-[0_0_20px_rgba(255,215,0,0.1)] cursor-pointer flex items-center justify-center"
+          title="Upload Custom Music"
+        >
+           <Music size={24} />
+           <input 
+             type="file" 
+             accept="audio/*" 
+             className="hidden" 
+             onChange={onMusicUpload}
+           />
+        </label>
+      </div>
+
       {/* Header */}
       <header className="flex flex-col items-center pointer-events-auto transition-all duration-1000">
         <h1 className="text-4xl md:text-6xl font-serif text-transparent bg-clip-text bg-gradient-to-b from-gold-300 to-gold-600 drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)] tracking-widest uppercase text-center">
@@ -36,10 +72,9 @@ export const Overlay: React.FC<OverlayProps> = ({
       </header>
 
       {/* Center Action Area - Only for AI Output now */}
-      {/* REMOVED pointer-events-auto from this container to allow 3D interaction behind it */}
       <div className="flex-1 flex items-center justify-center relative">
         
-        {/* AI GENERATION LOADING - Add pointer-events-auto individually */}
+        {/* AI GENERATION LOADING */}
         {interactionState === InteractionState.GENERATING && (
           <div className="pointer-events-auto bg-emerald-950/80 backdrop-blur-md border border-gold-500/30 p-8 rounded-full shadow-[0_0_50px_rgba(255,215,0,0.2)] animate-pulse flex flex-col items-center">
             <Loader2 className="w-12 h-12 text-gold-500 animate-spin" />
@@ -47,7 +82,7 @@ export const Overlay: React.FC<OverlayProps> = ({
           </div>
         )}
 
-        {/* AI WISH DISPLAY - Add pointer-events-auto individually */}
+        {/* AI WISH DISPLAY */}
         {interactionState === InteractionState.SHOWING && (
           <div className="pointer-events-auto max-w-3xl bg-gradient-to-b from-emerald-950/95 to-black/95 backdrop-blur-xl border border-gold-500 p-2 shadow-[0_0_100px_rgba(255,215,0,0.4)] animate-in fade-in zoom-in duration-500 mx-4">
             <div className="border border-gold-500/30 p-8 md:p-12 relative flex flex-col items-center">
@@ -107,20 +142,33 @@ export const Overlay: React.FC<OverlayProps> = ({
       {/* Right-Bottom Image Upload Widget */}
       <div className="fixed bottom-6 right-6 pointer-events-auto flex flex-col items-end gap-3 z-50">
         
-        {/* Thumbnails */}
+        {/* Compact Thumbnails (Last 3 + Counter) */}
         {userImages.length > 0 && (
-          <div className="flex flex-wrap justify-end gap-2 mb-2 max-w-[200px] md:max-w-[300px]">
-            {userImages.map((img, idx) => (
-              <div key={idx} className="relative group w-14 h-14 border border-gold-500/50 rounded-sm overflow-hidden shadow-lg bg-black/50 backdrop-blur-sm transition-transform hover:scale-110">
-                <img src={img} alt="memory" className="w-full h-full object-cover" />
-                <button 
-                  onClick={() => onRemoveImage(idx)}
-                  className="absolute inset-0 bg-red-900/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                >
-                  <Trash2 size={16} className="text-white" />
-                </button>
+          <div className="flex justify-end items-end gap-2 mb-2">
+            
+            {/* Overflow Badge */}
+            {hiddenCount > 0 && (
+              <div className="w-12 h-12 flex items-center justify-center bg-emerald-950/80 border border-gold-500/30 rounded-sm backdrop-blur-sm shadow-lg">
+                <span className="text-gold-400 font-sans text-xs font-bold">+{hiddenCount}</span>
               </div>
-            ))}
+            )}
+
+            {/* Recent Images */}
+            {displayImages.map((img, idx) => {
+              // Calculate original index to ensure correct deletion
+              const originalIndex = userImages.length - displayImages.length + idx;
+              return (
+                <div key={img} className="relative group w-12 h-12 border border-gold-500/50 rounded-sm overflow-hidden shadow-lg bg-black/50 backdrop-blur-sm transition-transform hover:scale-110">
+                  <img src={img} alt="memory" className="w-full h-full object-cover" />
+                  <button 
+                    onClick={() => onRemoveImage(originalIndex)}
+                    className="absolute inset-0 bg-red-900/80 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                  >
+                    <Trash2 size={16} className="text-white" />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
 
